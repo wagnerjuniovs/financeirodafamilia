@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="light">
+<head>
+  
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Gestão Financeira da Família - Controle financeiro simplificado">
+  <title>Gestão Financeira da Família</title>
+  
+  <!-- Fonte Inter via Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Scripts CDN: Chart.js 4 -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  
+  <!-- Scripts CDN: Firebase v9 compat -->
+  <script src="https://www.gstatic.com/firebasejs/9.10.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.10.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.10.0/firebase-auth-compat.js"></script>
+  
+<link rel="stylesheet" href="css/style.css">
+  
+</head>
+<body>
+
+  <div class="container">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-filters">
+        <div class="select-date-container" style="display: flex; gap: var(--spacing-sm);">
+          <div class="select-wrapper">
+            <select id="yearSelect" class="select">
+              <!-- Options will be populated by JS -->
+            </select>
+            <svg class="select-icon" width="16" height="16">
+              <use href="#icon-chevron-down"></use>
+            </svg>
+          </div>
+          
+          <div class="select-wrapper">
+            <select id="monthSelect" class="select">
+              <option value="0">Janeiro</option>
+              <option value="1">Fevereiro</option>
+              <option value="2">Março</option>
+              <option value="3">Abril</option>
+              <option value="4">Maio</option>
+              <option value="5">Junho</option>
+              <option value="6">Julho</option>
+              <option value="7">Agosto</option>
+              <option value="8">Setembro</option>
+              <option value="9">Outubro</option>
+              <option value="10">Novembro</option>
+              <option value="11">Dezembro</option>
+            </select>
+            <svg class="select-icon" width="16" height="16">
+              <use href="#icon-chevron-down"></use>
+            </svg>
+          </div>
+        </div>
+      </div>
+      
+      <div class="header-actions">
+        <button id="newIncomeBtn" class="btn btn-success">
+          Nova Receita
+        </button>
+        
+        <button id="newExpenseBtn" class="btn btn-danger">
+          Nova Despesa
+        </button>
+        
+        <button id="cardsBtn" class="btn btn-outline">
+          <svg width="16" height="16" style="margin-right: var(--spacing-xs);">
+            <use href="#icon-credit-card"></use>
+          </svg>
+          Cartões
+        </button>
+        
+        <button id="categoriesBtn" class="btn btn-outline">
+          <svg width="16" height="16" style="margin-right: var(--spacing-xs);">
+            <use href="#icon-settings"></use>
+          </svg>
+          Categorias
+        </button>
+        
+        <button id="investmentsBtn" class="btn btn-outline">
+          <svg width="16" height="16" style="margin-right: var(--spacing-xs);">
+            <use href="#icon-chart"></use>
+          </svg>
+          Investimentos
+        </button>
+
+        <div id="themeToggle" class="theme-toggle" role="button" aria-label="Alternar tema">
+          <svg class="icon-sun" width="20" height="20"> 
+            <use href="#icon-sun"></use>
+          </svg>
+          <svg class="icon-moon" width="20" height="20">
+            <use href="#icon-moon"></use>
+          </svg>
+        </div>
+      </div>
+    </header>
+    
+    <section class="hero">
+      <h1 class="hero-title">Wagner. Bárbara. Joaquim.</h1>
+      <p class="hero-subtitle">Porque o futuro que sonhamos começa com o que fazemos hoje.</p>
+    </section>
+    
+    <div class="kpi-grid">
+      <div class="kpi-card kpi-balance">
+        <div class="kpi-title">Saldo Real (Caixa)</div>
+        <div class="kpi-value" id="balanceValue">R$ 0,00</div>
+        <div class="kpi-subtitle">
+          <svg width="16" height="16">
+            <use href="#icon-info"></use>
+          </svg>
+          <span>Saldo comprometido: R$ 0,00</span>
+        </div>
+      </div>
+      
+      <div class="kpi-card kpi-income">
+        <div class="kpi-title">Receitas</div>
+        <div class="kpi-value" id="incomeValue">R$ 0,00</div>
+        <div class="kpi-subtitle">
+          <span id="incomeReceivedValue">R$ 0,00 recebidos</span> /
+          <span id="incomePendingValue">R$ 0,00 pendentes</span>
+        </div>
+      </div>
+      
+      <div class="kpi-card kpi-expense">
+        <div class="kpi-title">Despesas</div>
+        <div class="kpi-value" id="expenseValue">R$ 0,00</div>
+        <div class="kpi-subtitle">
+          <span id="expensePaidValue">R$ 0,00 pagos</span> /
+          <span id="expensePendingValue">R$ 0,00 pendentes</span>
+        </div>
+      </div>
+      
+      <div class="kpi-card kpi-card-invoice">
+        <div class="kpi-title">Fatura do Mês</div>
+        <div class="kpi-value" id="invoiceValue">R$ 0,00</div>
+        <div class="kpi-subtitle">
+          <svg width="16" height="16">
+            <use href="#icon-credit-card"></use>
+          </svg>
+          <span>Vencimento: <span id="invoiceDueDate">--/--/----</span></span>
+        </div>
+      </div>
+    </div>
+    
+    <div class="insights-banner-container" id="insightsBannerContainer">
+      <!-- Insights serão inseridos aqui dinamicamente -->
+    </div>
+    
+    <!-- INÍCIO DO BLOCO DE GRÁFICOS SUBSTITUÍDO -->
+    <section class="charts-container">
+      <h2 class="charts-title">Resumo Financeiro</h2>
+      <div class="charts-grid">
+        <div class="chart-container">
+          <h3>Despesas por Categoria</h3>
+          <div class="chart-wrapper">
+            <canvas id="categoryExpensesChart"></canvas>
+          </div>
+        </div>
+        <div class="chart-container">
+          <h3>Uso do Limite (Cartões)</h3>
+          <div class="chart-wrapper">
+            <canvas id="cardUsageDonutChart"></canvas>
+            <div class="limit-container">
+              <div class="limit-display">
+                <div class="limit-value">0%</div>
+                <div class="limit-label">utilizado</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="charts-grid">
+        <div class="chart-container">
+          <h3>Despesas Fixas vs Variáveis</h3>
+          <div class="chart-wrapper">
+            <canvas id="fixedVsVariableChart"></canvas>
+          </div>
+        </div>
+        <div class="chart-container">
+          <h3>Despesas por Pessoa</h3>
+          <div class="chart-wrapper">
+            <canvas id="personAnalysisChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="chart-container annual-chart-container" style="margin-bottom: var(--spacing-lg); height: 400px;"> 
+      <h3>Receitas x Despesas (12 meses)</h3>
+      <div class="chart-wrapper">
+        <canvas id="annualBars"></canvas>
+      </div>
+    </div>
+
+    <!-- Tooltip global para os gráficos -->
+    <div class="chart-tooltip" id="tooltip"></div>
+    <!-- FIM DO BLOCO DE GRÁFICOS SUBSTITUÍDO -->
+    
+    <div class="commitments">
+      <div class="commitments-header active" id="commitmentsHeader">
+        <h3>Compromissos Longos</h3>
+        <svg width="20" height="20" id="commitmentToggleIcon">
+            <use href="#icon-chevron-up"></use>
+        </svg>
+      </div>
+      <div class="commitments-content" id="commitmentsContent" style="max-height: 500px;"> 
+        <!-- Compromissos serão inseridos aqui dinamicamente -->
+      </div>
+    </div>
+    
+    <section class="transactions-container">
+      <div class="card-transacoes">
+        <div class="card-header">
+          <h3 class="card-title">Transações</h3>
+          <div class="filters transaction-filters" id="transaction-filters">
+            <!-- Filtros serão inseridos aqui dinamicamente -->
+          </div>
+        </div>
+        
+        <div class="transactions-table-container">
+          <table class="transactions-table" id="transactionsTable">
+            <thead>
+              <tr>
+                <th class="sortable" data-sort="name">Nome</th>
+                <th class="sortable" data-sort="person">Pessoa</th>
+                <th class="sortable" data-sort="date">Data</th>
+                <th class="sortable" data-sort="dueDate">Vencimento</th>
+                <th class="sortable" data-sort="amount">Valor</th>
+                <th class="sortable" data-sort="status">Status</th>
+                <th class="sortable" data-sort="paymentMethod">Pagamento</th>
+                <th>Pago?</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="transactionsTableBody">
+              <!-- Transações serão inseridas aqui dinamicamente -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Modais -->
+  <!-- Modal de Nova Receita -->
+  <div class="modal-backdrop" id="incomeModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 class="modal-title">Nova Receita</h2>
+        <button class="modal-close" id="closeIncomeModal" aria-label="Fechar">
+          <svg width="24" height="24">
+            <use href="#icon-x"></use>
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <form id="incomeForm">
+          <div class="form-group">
+            <label class="form-label" for="incomeName">Nome</label>
+            <input type="text" class="form-control" id="incomeName" placeholder="Nome da receita">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="incomeAmount">Valor</label>
+            <input type="number" class="form-control" id="incomeAmount" placeholder="0,00" min="0" step="0.01">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="incomeCategory">Categoria</label>
+            <div class="select-wrapper">
+              <select class="select" id="incomeCategory"></select>
+              <svg class="select-icon" width="16" height="16"><use href="#icon-chevron-down"></use></svg>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="incomeDate">Data de Lançamento</label>
+            <input type="date" class="form-control" id="incomeDate">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="incomePaymentMethod">Forma de Recebimento</label>
+            <div class="select-wrapper">
+              <select class="select" id="incomePaymentMethod"></select>
+              <svg class="select-icon" width="16" height="16"><use href="#icon-chevron-down"></use></svg>
+            </div>
+          </div>
+          <div class="form-group checkbox-wrapper">
+            <input type="checkbox" class="checkbox" id="incomeIsRecurrent">
+            <label class="checkbox-label" for="incomeIsRecurrent">Receita Recorrente</label>
+          </div>
+          <div class="form-group" id="incomeRecurrenceGroup" style="display: none;">
+            <label class="form-label" for="incomeInstallments">Quantidade de Parcelas</label>
+            <input type="number" class="form-control" id="incomeInstallments" min="2" value="2">
+          </div>
+          <div class="form-group" id="incomeStatusGroup">
+            <label class="form-label">Status</label>
+            <div class="radio-group">
+              <div class="radio-wrapper">
+                <input type="radio" class="radio" id="incomeStatusReceived" name="incomeStatus" value="received" checked>
+                <label class="radio-label" for="incomeStatusReceived">Recebido</label>
+              </div>
+              <div class="radio-wrapper">
+                <input type="radio" class="radio" id="incomeStatusPending" name="incomeStatus" value="pending">
+                <label class="radio-label" for="incomeStatusPending">A Receber</label>
+              </div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="incomeNotes">Observação (opcional)</label>
+            <textarea class="form-control" id="incomeNotes" rows="3"></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" id="cancelIncomeBtn">Cancelar</button>
+        <button class="btn btn-success" id="saveIncomeBtn">Salvar Receita</button>
+      </div>
+    </div>
+  </div>
+
+ <!-- Modal de Nova Despesa -->
+ <div class="modal-backdrop" id="expenseModal">
+   <div class="modal">
+     <div class="modal-header">
+       <h2 class="modal-title">Nova Despesa</h2>
+       <button class="modal-close" id="closeExpenseModal" aria-label="Fechar">
+         <svg width="24" height="24"><use href="#icon-x"></use></svg>
+       </button>
+     </div>
+     <div class="modal-body">
+       <form id="expenseForm">
+         <div class="form-group">
+           <label class="form-label" for="expenseName">Nome</label>
+           <input type="text" class="form-control" id="expenseName" placeholder="Nome da despesa">
+         </div>
+         <div class="form-group">
+           <label class="form-label" for="expenseAmount">Valor</label>
+           <input type="number" class="form-control" id="expenseAmount" placeholder="0,00" min="0" step="0.01">
+         </div>
+         <div class="form-group">
+           <label class="form-label" for="expensePaymentMethod">Forma de Pagamento</label>
+           <div class="select-wrapper">
+             <select class="select" id="expensePaymentMethod"></select>
+             <svg class="select-icon" width="16" height="16"><use href="#icon-chevron-down"></use></svg>
+           </div>
+         </div>
+         <div class="form-group" id="creditCardGroup" style="display: none;">
+           <label class="form-label" for="expenseCreditCard">Cartão de Crédito</label>
+           <div class="select-wrapper">
+             <select class="select" id="expenseCreditCard"></select>
+             <svg class="select-icon" width="16" height="16"><use href="#icon-chevron-down"></use></svg>
+           </div>
+         </div>
+         <div class="form-group">
+           <label class="form-label" for="expenseCategory">Categoria</label>
+           <div class="select-wrapper">
+             <select class="select" id="expenseCategory"></select>
+             <svg class="select-icon" width="16" height="16"><use href="#icon-chevron-down"></use></svg>
+           </div>
+         </div>
+         <div class="form-group">
+           <label class="form-label" for="expensePerson">Pessoa</label>
+           <div class="select-wrapper">
+             <select class="select" id="expensePerson"></select>
+             <svg class="select-icon" width="16" height="16"><use href="#icon-chevron-down"></use></svg>
+           </div>
+         </div>
+         <div class="form-group">
+           <label class="form-label">Tipo de Despesa</label>
+           <div class="radio-group">
+             <div class="radio-wrapper">
+               <input type="radio" class="radio" id="expenseTypeFixed" name="expenseType" value="fixed" required>
+               <label class="radio-label" for="expenseTypeFixed">Fixa</label>
+             </div>
+             <div class="radio-wrapper">
+               <input type="radio" class="radio" id="expenseTypeVariable" name="expenseType" value="variable" required>
+               <label class="radio-label" for="expenseTypeVariable">Variável</label>
+             </div>
+           </div>
+         </div>
+         <div class="form-group">
+           <label class="form-label" for="expenseDate">Data de Lançamento</label>
+           <input type="date" class="form-control" id="expenseDate">
+         </div>
+         <div class="form-group" id="expenseDueDateGroup">
+           <label class="form-label" for="expenseDueDate">Data de Vencimento</label>
+           <input type="date" class="form-control" id="expenseDueDate">
+         </div>
+         <div class="form-group checkbox-wrapper">
+           <input type="checkbox" class="checkbox" id="expenseIsRecurrent">
+           <label class="checkbox-label" for="expenseIsRecurrent">Despesa Recorrente</label>
+         </div>
+         <div class="form-group" id="expenseRecurrenceGroup" style="display: none;">
+           <label class="form-label" for="expenseInstallments">Quantidade de Parcelas</label>
+           <input type="number" class="form-control" id="expenseInstallments" min="2" value="2">
+         </div>
+         <div class="form-group" id="expenseStatusGroup">
+           <label class="form-label">Status</label>
+           <div class="radio-group">
+             <div class="radio-wrapper">
+               <input type="radio" class="radio" id="expenseStatusPaid" name="expenseStatus" value="paid">
+               <label class="radio-label" for="expenseStatusPaid">Pago</label>
+             </div>
+             <div class="radio-wrapper">
+               <input type="radio" class="radio" id="expenseStatusPending" name="expenseStatus" value="pending" checked>
+               <label class="radio-label" for="expenseStatusPending">Pendente</label>
+             </div>
+             <div class="radio-wrapper">
+               <input type="radio" class="radio" id="expenseStatusScheduled" name="expenseStatus" value="scheduled">
+               <label class="radio-label" for="expenseStatusScheduled">Agendado</label>
+             </div>
+           </div>
+         </div>
+         <div class="form-group" id="scheduledDateGroup" style="display: none;">
+           <label class="form-label" for="expenseScheduledDate">Data de Agendamento</label>
+           <input type="date" class="form-control" id="expenseScheduledDate">
+         </div>
+         <div class="form-group">
+           <label class="form-label" for="expenseNotes">Observação (opcional)</label>
+           <textarea class="form-control" id="expenseNotes" rows="3"></textarea>
+         </div>
+       </form>
+     </div>
+     <div class="modal-footer">
+       <button class="btn btn-outline" id="cancelExpenseBtn">Cancelar</button>
+       <button class="btn btn-danger" id="saveExpenseBtn">Salvar Despesa</button>
+     </div>
+   </div>
+ </div>
+
+ <!-- Modal de Edição de Transação -->
+ <div class="modal-backdrop" id="editModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 class="modal-title" id="editModalTitle">Editar Transação</h2>
+      <button class="modal-close" id="closeEditModal" aria-label="Fechar">
+        <svg width="24" height="24"><use href="#icon-x"></use></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <form id="editForm">
+        <input type="hidden" id="editTransactionId">
+        <input type="hidden" id="editTransactionType">
+        <div class="form-group">
+          <label class="form-label" for="editName">Nome</label>
+          <input type="text" class="form-control" id="editName">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="editAmount">Valor</label>
+          <input type="number" class="form-control" id="editAmount" min="0" step="0.01">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="editCategory">Categoria</label>
+          <div class="select-wrapper">
+            <select class="select" id="editCategory" data-type=""></select>
+            <svg class="select-icon" width="16" height="16"><use href="#icon-chevron-down"></use></svg>
+          </div>
+        </div>
+        <div class="form-group" id="editPersonGroup">
+          <label class="form-label" for="editPerson">Pessoa</label>
+          <div class="select-wrapper">
+            <select class="select" id="editPerson"></select>
+            <svg class="select-icon" width="16" height="16"><use href="#icon-chevron-down"></use></svg>
+          </div>
+        </div>
+        <div class="form-group" id="editExpenseTypeGroup" style="display: none;">
+          <label class="form-label">Tipo de Despesa</label>
+          <div class="radio-group">
+            <div class="radio-wrapper">
+              <input type="radio" class="radio" id="editExpenseTypeFixed" name="editExpenseType" value="fixed">
+              <label class="radio-label" for="editExpenseTypeFixed">Fixa</label>
+            </div>
+            <div class="radio-wrapper">
+              <input type="radio" class="radio" id="editExpenseTypeVariable" name="editExpenseType" value="variable">
+              <label class="radio-label" for="editExpenseTypeVariable">Variável</label>
+            </div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="editDate">Data de Lançamento</label>
+          <input type="date" class="form-control" id="editDate">
+        </div>
+        <div class="form-group" id="editDueDateGroup">
+          <label class="form-label" for="editDueDate">Data de Vencimento</label>
+          <input type="date" class="form-control" id="editDueDate">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="editPaymentMethod">Forma de Pagamento</label>
+          <div class="select-wrapper">
+            <select class="select" id="editPaymentMethod"></select>
+            <svg class="select-icon" width="16" height="16"><use href="#icon-chevron-down"></use></svg>
+          </div>
+        </div>
+        <div class="form-group" id="editCreditCardGroup" style="display: none;">
+          <label class="form-label" for="editCreditCard">Cartão de Crédito</label>
+          <div class="select-wrapper">
+            <select class="select" id="editCreditCard"></select>
+            <svg class="select-icon" width="16" height="16"><use href="#icon-chevron-down"></use></svg>
+          </div>
+        </div>
+        <div class="form-group checkbox-wrapper">
+          <input type="checkbox" class="checkbox" id="editIsRecurrent">
+          <label class="checkbox-label" for="editIsRecurrent">Transação Recorrente</label>
+        </div>
+        <div class="form-group" id="editRecurrenceGroup" style="display: none;">
+          <label class="form-label" for="editInstallments">Quantidade de Parcelas</label>
+          <input type="number" class="form-control" id="editInstallments" min="2" value="2">
+        </div>
+        <div class="form-group" id="editStatusOuterGroup"> 
+          <label class="form-label">Status</label>
+          <div class="radio-group" id="editStatusGroup">
+            <!-- Opções de status serão inseridas dinamicamente -->
+          </div>
+        </div>
+        <div class="form-group" id="editScheduledDateGroup" style="display: none;">
+          <label class="form-label" for="editScheduledDate">Data de Agendamento</label>
+          <input type="date" class="form-control" id="editScheduledDate">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="editNotes">Observação (opcional)</label>
+          <textarea class="form-control" id="editNotes" rows="3"></textarea>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" id="cancelEditBtn">Cancelar</button>
+      <button class="btn btn-primary" id="saveEditBtn">Salvar Alterações</button>
+    </div>
+  </div>
+ </div>
+
+ <!-- Modal de Cartões -->
+ <div class="modal-backdrop" id="cardsListModal">
+  <div class="modal" style="max-width: 600px;">
+    <div class="modal-header">
+      <h2 class="modal-title">Cartões</h2>
+      <button class="modal-close" id="closeCardsListModal" aria-label="Fechar">
+        <svg width="24" height="24"><use href="#icon-x"></use></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div id="cardsList">
+        <!-- Cards serão inseridos aqui dinamicamente -->
+      </div>
+      <button class="btn btn-primary" id="newCardBtn" style="margin-top: var(--spacing-md);">
+        <svg width="16" height="16" style="margin-right: var(--spacing-xs);"><use href="#icon-plus"></use></svg>
+        Novo Cartão
+      </button>
+    </div>
+  </div>
+ </div>
+
+ <!-- Modal de Novo Cartão -->
+ <div class="modal-backdrop" id="newCardModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 class="modal-title">Novo Cartão</h2>
+      <button class="modal-close" id="closeNewCardModal" aria-label="Fechar">
+        <svg width="24" height="24"><use href="#icon-x"></use></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <form id="cardForm">
+        <div class="form-group">
+          <label class="form-label" for="cardName">Nome do Cartão</label>
+          <input type="text" class="form-control" id="cardName" placeholder="Ex: Nubank">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="cardLimit">Limite Total</label>
+          <input type="number" class="form-control" id="cardLimit" placeholder="0,00" min="0" step="0.01">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="cardClosingDay">Dia de Fechamento</label>
+          <input type="number" class="form-control" id="cardClosingDay" placeholder="1-31" min="1" max="31">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="cardDueDay">Dia de Vencimento</label>
+          <input type="number" class="form-control" id="cardDueDay" placeholder="1-31" min="1" max="31">
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" id="cancelCardBtn">Cancelar</button>
+      <button class="btn btn-primary" id="saveCardBtn">Salvar Cartão</button>
+    </div>
+  </div>
+ </div>
+
+ <!-- Modal de Fatura do Cartão -->
+ <div class="modal-backdrop" id="cardInvoiceModal">
+  <div class="modal" style="max-width: 700px;">
+    <div class="modal-header">
+      <h2 class="modal-title" id="cardInvoiceTitle">Fatura do Cartão</h2>
+      <button class="modal-close" id="closeCardInvoiceModal" aria-label="Fechar">
+        <svg width="24" height="24"><use href="#icon-x"></use></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="card" style="margin-bottom: var(--spacing-md);">
+        <div id="cardInvoiceDetails">
+          <!-- Detalhes da fatura serão inseridos aqui dinamicamente -->
+        </div>
+      </div>
+      <h3>Despesas desta Fatura</h3>
+      <div class="transactions-table-container">
+        <table class="transactions-table" id="cardInvoiceTable">
+          <thead>
+            <tr>
+              <th>Nome</th>
+              <th>Data</th>
+              <th>Valor</th>
+              <th>Pago?</th>
+            </tr>
+          </thead>
+          <tbody id="cardInvoiceTableBody">
+            <!-- Despesas da fatura serão inseridas aqui dinamicamente -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" id="backToCardsBtn">Voltar</button>
+      <button class="btn btn-primary" id="payInvoiceBtn">Pagar Fatura</button>
+    </div>
+  </div>
+ </div>
+
+ <!-- Modal de Confirmação de Exclusão -->
+ <div class="modal-backdrop" id="deleteConfirmModal">
+  <div class="modal" style="max-width: 400px;">
+    <div class="modal-header">
+      <h2 class="modal-title">
+        <svg width="24" height="24" style="vertical-align: middle; margin-right: 8px;"><use href="#icon-alert"></use></svg>
+        Confirmar Exclusão
+      </h2>
+      <button class="modal-close" id="closeDeleteConfirmModal" aria-label="Fechar">
+        <svg width="24" height="24"><use href="#icon-x"></use></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <p>Você deseja realmente excluir esta transação? Esta ação é irreversível.</p>
+      <div id="recurrenceDeleteOptions" style="display: none; margin-top: var(--spacing-md);">
+        <p><strong>Esta é uma transação recorrente. O que deseja fazer?</strong></p>
+        <div class="radio-group" style="flex-direction: column; gap: var(--spacing-sm);">
+          <div class="radio-wrapper">
+            <input type="radio" class="radio" id="deleteSingle" name="deleteOption" value="single" checked>
+            <label class="radio-label" for="deleteSingle">Excluir apenas esta parcela</label>
+          </div>
+          <div class="radio-wrapper">
+            <input type="radio" class="radio" id="deleteAllFuture" name="deleteOption" value="future">
+            <label class="radio-label" for="deleteAllFuture">Excluir esta e todas as parcelas futuras</label>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" id="cancelDeleteBtn">Cancelar</button>
+      <button class="btn btn-danger" id="confirmDeleteBtn">Excluir</button>
+    </div>
+  </div>
+ </div>
+
+ <!-- Modal de Confirmação de Pagamento de Fatura -->
+ <div class="modal-backdrop" id="payInvoiceConfirmModal">
+  <div class="modal" style="max-width: 400px;">
+    <div class="modal-header">
+      <h2 class="modal-title">
+        <svg width="24" height="24" style="vertical-align: middle; margin-right: 8px;"><use href="#icon-credit-card"></use></svg>
+        Pagar Fatura do Cartão
+      </h2>
+      <button class="modal-close" id="closePayInvoiceConfirmModal" aria-label="Fechar">
+        <svg width="24" height="24"><use href="#icon-x"></use></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <p>Confirmar pagamento de todas as despesas desta fatura?</p>
+      <p style="margin-top: var(--spacing-xs);">Total: <strong id="invoiceConfirmAmount">R$ 0,00</strong></p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" id="cancelPayInvoiceBtn">Cancelar</button>
+      <button class="btn btn-primary" id="confirmPayInvoiceBtn">Pagar</button>
+    </div>
+  </div>
+ </div>
+
+ <!-- Modal de Categorias -->
+ <div class="modal-backdrop" id="categoriesModal">
+  <div class="modal" style="max-width: 600px;">
+    <div class="modal-header">
+      <h2 class="modal-title">Gerenciar Categorias</h2>
+      <button class="modal-close" id="closeCategoriesModal" aria-label="Fechar">
+        <svg width="24" height="24"><use href="#icon-x"></use></svg>
+      </button>
+    </div>
+    <div class="modal-body categories-container">
+      <ul class="nav-tabs" id="categoryTabs" role="tablist">
+        <li class="nav-item"><a class="nav-link active" id="income-cat-tab" data-toggle="tab" href="#income-cat" role="tab">Receitas</a></li>
+        <li class="nav-item"><a class="nav-link" id="expense-cat-tab" data-toggle="tab" href="#expense-cat" role="tab">Despesas</a></li>
+        <li class="nav-item"><a class="nav-link" id="payment-methods-tab" data-toggle="tab" href="#payment-methods" role="tab">Pagamentos</a></li>
+        <li class="nav-item"><a class="nav-link" id="people-tab" data-toggle="tab" href="#people" role="tab">Pessoas</a></li>
+        <li class="nav-item"><a class="nav-link" id="investment-cat-tab" data-toggle="tab" href="#investment-cat" role="tab">Investimentos</a></li>
+      </ul>
+      <div class="tab-content" id="categoryTabContent">
+        <div class="tab-pane fade show active" id="income-cat" role="tabpanel">
+          <div class="category-list" id="incomeCategoriesList"></div>
+          <form class="add-category-form">
+            <div class="custom-icon-input"><div class="custom-icon-preview" id="newIncomeCategoryIconPreview">💰</div><input type="text" class="form-control" id="newIncomeCategoryIconInput" placeholder="Ícone"></div>
+            <input type="text" class="form-control" id="newIncomeCategoryInput" placeholder="Nova categoria de receita">
+            <button type="button" class="btn btn-primary" id="addIncomeCategoryBtn">Adicionar</button>
+          </form>
+        </div>
+        <div class="tab-pane fade" id="expense-cat" role="tabpanel">
+          <div class="category-list" id="expenseCategoriesList"></div>
+          <form class="add-category-form">
+            <div class="custom-icon-input"><div class="custom-icon-preview" id="newExpenseCategoryIconPreview">🛍️</div><input type="text" class="form-control" id="newExpenseCategoryIconInput" placeholder="Ícone"></div>
+            <input type="text" class="form-control" id="newExpenseCategoryInput" placeholder="Nova categoria de despesa">
+            <button type="button" class="btn btn-primary" id="addExpenseCategoryBtn">Adicionar</button>
+          </form>
+        </div>
+        <div class="tab-pane fade" id="payment-methods" role="tabpanel">
+          <div class="category-list" id="paymentMethodsList"></div>
+          <form class="add-category-form">
+            <div class="custom-icon-input"><div class="custom-icon-preview" id="newPaymentMethodIconPreview">💳</div><input type="text" class="form-control" id="newPaymentMethodIconInput" placeholder="Ícone"></div>
+            <input type="text" class="form-control" id="newPaymentMethodInput" placeholder="Nova forma de pagamento">
+            <button type="button" class="btn btn-primary" id="addPaymentMethodBtn">Adicionar</button>
+          </form>
+        </div>
+        <div class="tab-pane fade" id="people" role="tabpanel">
+          <div class="category-list" id="peopleList"></div>
+          <form class="add-category-form">
+            <div class="custom-icon-input"><div class="custom-icon-preview" id="newPersonIconPreview">👤</div><input type="text" class="form-control" id="newPersonIconInput" placeholder="Ícone"></div>
+            <input type="text" class="form-control" id="newPersonInput" placeholder="Nome da pessoa">
+            <button type="button" class="btn btn-primary" id="addPersonBtn">Adicionar</button>
+          </form>
+        </div>
+        <div class="tab-pane fade" id="investment-cat" role="tabpanel">
+          <div class="category-list" id="investmentCategoriesList"></div>
+          <form class="add-category-form">
+            <div class="custom-icon-input"><div class="custom-icon-preview" id="newInvestmentCategoryIconPreview">📈</div><input type="text" class="form-control" id="newInvestmentCategoryIconInput" placeholder="Ícone"></div>
+            <input type="text" class="form-control" id="newInvestmentCategoryInput" placeholder="Nova categoria de investimento">
+            <button type="button" class="btn btn-primary" id="addInvestmentCategoryBtn">Adicionar</button>
+          </form>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" id="closeCategoriesBtn">Fechar</button>
+    </div>
+  </div>
+ </div>
+
+ <!-- Modal de Edição de Categoria/Item -->
+ <div class="modal-backdrop" id="editCategoryModal">
+  <div class="modal" style="max-width: 400px;">
+    <div class="modal-header">
+      <h2 class="modal-title" id="editCategoryTitle">Editar Item</h2>
+      <button class="modal-close" id="closeEditCategoryModal" aria-label="Fechar">
+        <svg width="24" height="24"><use href="#icon-x"></use></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <form id="editCategoryForm">
+        <input type="hidden" id="editCategoryId">
+        <input type="hidden" id="editCategoryType">
+        <div class="form-group">
+          <label class="form-label">Ícone</label>
+          <div class="custom-icon-input">
+            <div class="custom-icon-preview" id="editCategoryIconPreview">ℹ️</div>
+            <input type="text" class="form-control" id="editCategoryIconInput" placeholder="Emoji ou ícone">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="editCategoryName">Nome</label>
+          <input type="text" class="form-control" id="editCategoryName" placeholder="Nome">
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" id="cancelEditCategoryBtn">Cancelar</button>
+      <button class="btn btn-primary" id="saveEditCategoryBtn">Salvar</button>
+    </div>
+  </div>
+ </div>
+
+ <!-- Modal Principal de Investimentos -->
+ <div class="modal-backdrop" id="investmentsModal">
+  <div class="modal" style="max-width: 900px;">
+    <div class="modal-header">
+      <h2 class="modal-title">Investimentos</h2>
+      <button class="modal-close" id="closeInvestmentsModal" aria-label="Fechar">
+        <svg width="24" height="24"><use href="#icon-x"></use></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-md);">
+        <h3>Seus Investimentos</h3>
+        <button class="btn btn-primary" id="newInvestmentBtn">
+          <svg width="16" height="16" style="margin-right: var(--spacing-xs);"><use href="#icon-plus"></use></svg>
+          Novo Investimento
+        </button>
+      </div>
+      <div class="investment-grid" id="investmentsGrid">
+        <!-- Cards de investimentos -->
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" id="closeInvestmentsBtn">Fechar</button>
+    </div>
+  </div>
+ </div>
+
+ <!-- Modal para Detalhe do Investimento -->
+ <div class="modal-backdrop" id="investmentDetailModal">
+  <div class="modal" style="max-width: 800px;">
+    <div class="modal-header">
+      <h2 class="modal-title" id="investmentDetailTitle" style="display: flex; align-items: center; gap: var(--spacing-sm);">
+        <button class="btn btn-icon btn-outline" id="backToInvestmentsBtn" aria-label="Voltar">
+          <svg width="16" height="16"><use href="#icon-arrow-left"></use></svg>
+        </button>
+        <span id="investmentDetailName">Nome do Investimento</span>
+      </h2>
+      <button class="modal-close" id="closeInvestmentDetailModal" aria-label="Fechar">
+        <svg width="24" height="24"><use href="#icon-x"></use></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="investment-detail">
+        <div class="investment-detail-header">
+          <div class="investment-detail-stat"><div class="investment-detail-title">Guardado</div><div class="investment-detail-value" id="investmentDetailSaved">R$ 0,00</div></div>
+          <div class="investment-detail-stat"><div class="investment-detail-title">Meta</div><div class="investment-detail-value" id="investmentDetailGoal">R$ 0,00</div></div>
+          <div class="investment-detail-stat"><div class="investment-detail-title">Progresso</div><div class="investment-detail-value" id="investmentDetailProgress">0%</div></div>
+        </div>
+        <div style="margin-bottom: var(--spacing-md);">
+          <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: var(--spacing-sm);">
+            <div><div class="investment-detail-title">Categoria</div><div id="investmentDetailCategory">Viagem</div></div>
+            <div><div class="investment-detail-title">Criado em</div><div id="investmentDetailCreatedAt">01/01/2025</div></div>
+            <div><div class="investment-detail-title">Objetivo</div><div id="investmentDetailTarget">Julho de 2026</div></div>
+          </div>
+          <div style="margin-top: var(--spacing-sm);"><div class="investment-detail-title">Observação</div><div id="investmentDetailNotes">-</div></div>
+        </div>
+      </div>
+      <div class="investment-history">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-sm);">
+          <h3 class="investment-history-title">Histórico de Aportes</h3>
+          <button class="btn btn-primary" id="addInvestmentContributionBtn">
+            <svg width="16" height="16" style="margin-right: var(--spacing-xs);"><use href="#icon-plus"></use></svg>
+            Adicionar Aporte
+          </button>
+        </div>
+        <div class="transactions-table-container">
+            <table class="investment-history-table">
+            <thead><tr><th>Data</th><th>Valor</th><th>Descrição</th><th>Ações</th></tr></thead>
+            <tbody id="investmentHistoryTableBody"></tbody>
+            </table>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-danger" id="deleteInvestmentBtn">Excluir Investimento</button>
+      <button class="btn btn-primary" id="editInvestmentBtn">Editar Investimento</button>
+    </div>
+  </div>
+ </div>
+
+ <!-- Modal de Novo Investimento -->
+ <div class="modal-backdrop" id="newInvestmentModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 class="modal-title" id="newInvestmentModalTitle">Novo Investimento</h2>
+      <button class="modal-close" id="closeNewInvestmentModal" aria-label="Fechar">
+        <svg width="24" height="24"><use href="#icon-x"></use></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <form id="investmentForm">
+        <div class="form-group"><label class="form-label" for="investmentName">Nome do objetivo</label><input type="text" class="form-control" id="investmentName" placeholder="Ex: Viagem em Família"></div>
+        <div class="form-group"><label class="form-label" for="investmentAmount">Valor inicial</label><input type="number" class="form-control" id="investmentAmount" placeholder="0,00" min="0" step="0.01"></div>
+        <div class="form-group"><label class="form-label" for="investmentGoal">Meta final (opcional)</label><input type="number" class="form-control" id="investmentGoal" placeholder="0,00" min="0" step="0.01"></div>
+        <div class="form-group">
+          <label class="form-label" for="investmentCategory">Tipo/Categoria</label>
+          <div class="select-wrapper">
+            <select class="select" id="investmentCategorySelect"></select> 
+            <svg class="select-icon" width="16" height="16"><use href="#icon-chevron-down"></use></svg>
+          </div>
+        </div>
+        <div class="form-group"><label class="form-label" for="investmentTargetDate">Data-alvo (opcional)</label><input type="date" class="form-control" id="investmentTargetDate"></div>
+        <div class="form-group"><label class="form-label" for="investmentNotes">Observações (opcional)</label><textarea class="form-control" id="investmentNotes" rows="3"></textarea></div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" id="cancelInvestmentBtn">Cancelar</button>
+      <button class="btn btn-primary" id="saveInvestmentBtn">Salvar Investimento</button>
+    </div>
+  </div>
+ </div>
+
+ <!-- Modal para Adicionar Aporte -->
+ <div class="modal-backdrop" id="newContributionModal">
+  <div class="modal" style="max-width: 400px;">
+    <div class="modal-header">
+      <h2 class="modal-title" id="newContributionModalTitle">Adicionar Novo Valor</h2>
+      <button class="modal-close" id="closeNewContributionModal" aria-label="Fechar">
+        <svg width="24" height="24"><use href="#icon-x"></use></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <form id="contributionForm">
+        <input type="hidden" id="contributionInvestmentId">
+        <div class="form-group"><label class="form-label" for="contributionAmount">Valor</label><input type="number" class="form-control" id="contributionAmount" placeholder="0,00" min="0" step="0.01" required></div>
+        <div class="form-group"><label class="form-label" for="contributionDate">Data</label><input type="date" class="form-control" id="contributionDate" required></div>
+        <div class="form-group"><label class="form-label" for="contributionDescription">Descrição</label><input type="text" class="form-control" id="contributionDescription" placeholder="Ex: Depósito mensal"></div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" id="cancelContributionBtn">Cancelar</button>
+      <button class="btn btn-primary" id="saveContributionBtn">Adicionar</button>
+    </div>
+  </div>
+ </div>
+
+ <!-- Modal para detalhes de contas vencidas/a vencer -->
+ <div class="modal-backdrop" id="dueTransactionsModal">
+  <div class="modal" style="max-width: 700px;">
+    <div class="modal-header">
+      <h2 class="modal-title" id="dueTransactionsModalTitle">
+        <svg width="24" height="24" style="vertical-align: middle; margin-right: 8px;" id="dueTransactionsModalIcon"><use href="#icon-alert"></use></svg>
+        <span id="dueTransactionsModalTitleText">Contas</span>
+      </h2>
+      <button class="modal-close" id="closeDueTransactionsModal" aria-label="Fechar">
+        <svg width="24" height="24"><use href="#icon-x"></use></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="transactions-table-container">
+        <table class="transactions-table" id="dueTransactionsTable">
+          <thead>
+            <tr>
+              <th>Nome</th>
+              <th>Categoria</th>
+              <th>Vencimento</th>
+              <th>Valor</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="dueTransactionsTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" id="closeDueTransactionsBtn">Fechar</button>
+      <button class="btn btn-primary" id="payAllDueBtn" style="display:none;">Pagar Todas</button>
+    </div>
+  </div>
+ </div>
+
+ <div class="toast-container" id="toastContainer"></div>
+
+<script src="js/firebase.js"></script>
+<script src="js/config.js"></script>
+<script src="js/state.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/charts.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/app.js"></script>
+<script src="js/script.js"></script>
+</body>
+</html>
