@@ -636,7 +636,7 @@
     const content = $('#commitmentsContent');
     if (!content) return;
     content.innerHTML = '';
-    const recurrent = state.transactions.filter(t => t.isRecurrent && t.installments && t.installmentNumber && t.installments > t.installmentNumber);
+    const recurrent = state.transactions.filter(t => t.isRecurrent && t.installments && t.installmentNumber && t.installments > t.installmentNumber && (t.showInCommitments !== false));
     if (recurrent.length === 0) {
       content.innerHTML = '<p style="text-align: center;">Nenhum compromisso longo.</p>';
       return;
@@ -1309,6 +1309,7 @@
         status: $('input[name="expenseStatus"]:checked') ? $('input[name="expenseStatus"]:checked').value : 'pending', 
         notes: $('#expenseNotes').value.trim(),
         isRecurrent: $('#expenseIsRecurrent').checked,
+        showInCommitments: $('#expenseIsRecurrent').checked ? $('#expenseShowInCommitments').checked : true,
         creditCardId: paymentMethod === 'credito' ? creditCardId : null,
         scheduledDate: null
       };
@@ -1500,9 +1501,17 @@
     $('#expenseDate').addEventListener('change', () => handleDueDateForCard('expense')); 
     $('#expenseDueDate').addEventListener('change', () => { /* Apenas para o usuário mudar manualmente se não for cartão */ });
     $('#expenseIsRecurrent').addEventListener('change', () => {
-        handleRecurrenceGroupVisibility('expense');
-        handleStatusFieldVisibility('expense');
-    });
+  handleRecurrenceGroupVisibility('expense');
+  handleStatusFieldVisibility('expense');
+  // NOVO CÓDIGO PARA MOSTRAR/ESCONDER O CHECKBOX
+  const showInCommitmentsGroup = $('#expenseShowInCommitmentsGroup');
+  if (showInCommitmentsGroup) {
+    showInCommitmentsGroup.style.display = $('#expenseIsRecurrent').checked ? 'block' : 'none';
+    if (!$('#expenseIsRecurrent').checked) {
+      $('#expenseShowInCommitments').checked = true;
+    }
+  }
+});
     $$('input[name="expenseStatus"]').forEach(r => r.addEventListener('change', () => handleScheduledDateVisibility('expense')));
 
     $('#incomeIsRecurrent').addEventListener('change', () => {
